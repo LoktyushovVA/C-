@@ -6,6 +6,8 @@ from PyQt5.QtCore import Qt
 from PyQt5 import QtWidgets, QtCore, QtGui
 from db import *
 
+
+#fffrgr
 try:
 
     openDatabase()
@@ -16,7 +18,6 @@ try:
     window.showMaximized()
 
     sys.exit(app.exec_())
-
 
 except Exception as _ex:
     print("[INFO] Error in main ", _ex)

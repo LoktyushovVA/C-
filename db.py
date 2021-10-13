@@ -17,7 +17,7 @@ def openDatabase():
     try:
         con = psycopg2.connect(dbname=db_name, user=user, password=password, host=host, cursor_factory=DictCursor)
         print("database '" +db_name+"' is open")
-        #con.autocommit = True
+        con.autocommit = True
         dbc.dbcon = con
 
         return con
@@ -30,15 +30,16 @@ def openDatabase():
 
 def GetNir():
     with dbc.dbcon.cursor() as cur:
-        query = f'select codvuz as "код вуза",rnw as "характер  НИР",z2 as "сокращенное наименование вуза",f6 as "руководитель НИР",f10 as "коды темы по ГРНТИ",f18 as "плановый объем финансирования",f2 as "наименование НИР",f7 as "должность руководителя" from nir;'
+        query = f'select codvuz as "код вуза",rnw as "номер НИР",f1 as "характер НИР",z2 as "сокращенное наименование вуза",f6 as "руководитель НИР",f10 as "коды темы по ГРНТИ",f18 as "плановый объем финансирования",f2 as "наименование НИР",f7 as "должность руководителя" from nir ;'
         # print(query)
+
         cur.execute(query)
         table = cur.fetchall()
         return table
 
 def GetFin():
     with dbc.dbcon.cursor() as cur:
-        query = f'select codvuz as "код вуза",z2 as "сокращенное наименование",z3 as "плановый объем финансирования",z18 as "фактический объем финансирования",numworks as "количество НИР" from f();'
+        query = f'select codvuz as "код вуза",z2 as "сокращенное наименование",z3 as "плановый объем финансирования",z18 as "фактический объем финансирования",numworks as "количество НИР" from f() order by z2;'
         # print(query)
         cur.execute(query)
         table = cur.fetchall()
@@ -51,7 +52,7 @@ def GetRub():
         cur.execute(query)
         table = cur.fetchall()
         return table
-#soddfodfk
+
 def Getvuz():
     with dbc.dbcon.cursor() as cur:
         query = f"select * from vuz_for_rus;"
@@ -59,3 +60,41 @@ def Getvuz():
         cur.execute(query)
         table = cur.fetchall()
         return table
+
+
+def GetVuzTuple():
+    with dbc.dbcon.cursor() as cur:
+        cur.execute("SELECT  z2 FROM f() order by z2")
+        vuztup = ((row["z2"]) for row in cur.fetchall())
+        return tuple(vuztup)
+
+def GetVuzDict(swap = False):
+    with dbc.dbcon.cursor() as cur:
+        cur.execute("SELECT codvuz, z2 FROM f()")
+
+        vdict = {row['z2']:row["codvuz"] for row in cur.fetchall()}  if swap else {row['codvuz']:row["z2"] for row in cur.fetchall()}
+        return vdict
+
+
+
+
+def AddLineToDB(rnw, har, cokr, ruk, grn, descr, dol, fin,oldRec = None):
+    with dbc.dbcon.cursor() as cur:
+        cur.execute(f"select codvuz from f() where z2 = '{cokr}'")
+        cvuz = cur.fetchone()["codvuz"]
+        q = f"select  add_line({cvuz},'{rnw}','{har}','{cokr}','{ruk}','{descr}','{grn}','{dol}',{fin})"
+        print(q)
+        cur.execute(q)
+        # dbc.dbcon.commit()
+
+def EditRecordToDB(rnw, har, cokr, ruk, grn, descr, dol, fin,oldRec):
+    RemoveRecord(*oldRec)
+    AddLineToDB(rnw, har, cokr, ruk, grn, descr, dol, fin)
+
+
+
+
+def RemoveRecord(cvuz,rnw):
+    with dbc.dbcon.cursor() as cur:
+        cur.execute(f"select del({cvuz},'{rnw}');")
+        dbc.dbcon.commit()

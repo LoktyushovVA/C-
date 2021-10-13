@@ -1,5 +1,7 @@
-import pril_nir
+from forms import pril_nir
+from line_forms import OneLine, Drop ,AddLineForm,Updatingline
 from PyQt5 import QtWidgets,QtGui, QtCore
+from PyQt5.QtCore import Qt
 from db import *
 
 class TableClass():
@@ -7,9 +9,10 @@ class TableClass():
     cRec = ("", "")
     wparent = None
 
-    def setColortoRow(self, table, rowIndex, color):
+    def setColortoRow(self, table, rowIndex, b_color, f_color):
         for j in range(table.columnCount()):
-            table.item(rowIndex, j).setBackground(color)
+            table.item(rowIndex, j).setBackground(b_color)
+            table.item(rowIndex, j).setForeground(f_color)
 
     def rowselection(self):
         r = self.tableWidget.currentRow()
@@ -17,9 +20,9 @@ class TableClass():
 
     def selectirow(self, r):
         try:
-            self.setColortoRow(self.tableWidget, r, QtGui.QColor(0x6E86D6))
+            self.setColortoRow(self.tableWidget, r, QtGui.QColor(0x0000FF),QtGui.QColor(0xFFFFFF))
             if self.cRow != -1 and self.cRow != r:
-                self.setColortoRow(self.tableWidget, self.cRow, QtGui.QColor(0xFFFFFF))
+                self.setColortoRow(self.tableWidget, self.cRow, QtGui.QColor(0xFFFFFF),QtGui.QColor(0x000000))
             self.cRow = r
             if QtWidgets.QMainWindow in self.__class__.__bases__:
                 self.statusBar().showMessage(f'Строка {r + 1}')
@@ -55,7 +58,7 @@ class TableClass():
         self.tableWidget.resizeColumnsToContents()
         self.tableWidget.verticalHeader().setVisible(False)
 
-        #self.tableWidget.clicked.connect(self.rowselection)
+        self.tableWidget.clicked.connect(self.rowselection)
         self.FillTable(table)
 
     def closeEvent(self, event):
@@ -64,7 +67,9 @@ class TableClass():
             self.wparent.mdi.closeAllSubWindows()
 
 
-class MainWindow(QtWidgets.QMainWindow,pril_nir.Ui_MainWindow, TableClass):
+class MainWindow(QtWidgets.QMainWindow, pril_nir.Ui_MainWindow, TableClass):
+
+
     def __init__(self):
         super().__init__()
 
@@ -74,6 +79,35 @@ class MainWindow(QtWidgets.QMainWindow,pril_nir.Ui_MainWindow, TableClass):
         self.action_2.triggered.connect(self.open2)
         self.action_3.triggered.connect(self.open3)
         self.action_4.triggered.connect(self.open4)
+
+        self.button_add.clicked.connect(self.add_line)
+        self.button_edit.clicked.connect(self.edit_line)
+        self.form_window=None
+        self.button_drop.clicked.connect(self.drop_line)
+
+    def drop_line(self):
+        self.form_window = Drop(self)
+        self.form_window.show()
+
+    def add_line(self):
+        self.form_window = AddLineForm(self)
+        self.form_window.show()
+
+    def edit_line(self):
+        self.form_window = Updatingline(self)
+        self.form_window.show()
+
+    def find_line(self,cvuz,rnw):
+        cvuzes = self.tableWidget.findItems(str(cvuz), Qt.MatchExactly)
+        cvuzesind = tuple((pr.row()) for pr in cvuzes)
+        print("find " + str(cvuz)+ ' | ' + rnw)
+        for i in cvuzesind:
+            if self.tableWidget.item(i,1).text()==rnw:
+                print(i)
+                self.selectirow(i)
+                self.tableWidget.scrollToItem(self.tableWidget.item(i,0))
+                return i
+
 
     def open(self):
         self.SetUpTable(GetNir())
@@ -86,3 +120,6 @@ class MainWindow(QtWidgets.QMainWindow,pril_nir.Ui_MainWindow, TableClass):
 
     def open4(self):
         self.SetUpTable(Getvuz())
+
+    def UpdNirTable(self):
+        self.FillTable(GetNir())
